@@ -302,3 +302,7 @@ app.scripts.append_script({
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+app.listen(process.env.PORT || 3000, function(){
+  console.log("Express server listening on port %d in %s mode", this.address().port, app.settings.env);
+});
