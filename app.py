@@ -22,41 +22,56 @@ def get_neighbours(dff, threshold = 0.2):
 def plot_map(dff):
     return {
         'data': [{
+            'lat': df['latitude_deg'],
+            'lon': df['longitude_deg'],
+            'text': df['env_material'],
+            'marker': {
+                'size': df['observations_deblur_90bp']/10000,
+                'opacity': 0,
+                'color':[color_table_desat[i] for i in df[value2vary].values],
+                },
+            'name': df[value2vary].values,
+            'showlegend' : False,
+            'customdata': df.index,
+            'type': 'scattermapbox'
+        }] +
+            [{
             'lat': df[df[value2vary] == i]['latitude_deg'],
             'lon': df[df[value2vary] == i]['longitude_deg'],
             'text': df[df[value2vary] == i]['env_material'],
             'marker': {
-                'size': df[df[value2vary] == i]['observations_deblur_90bp']/5000,
-                'opacity': 0.7,
+                'size': df[df[value2vary] == i]['observations_deblur_90bp']/10000,
+                'opacity': 1,
                 'color':color_table_desat[i],
                 'line': {'width': 10, 'color': 'white'}},
             'name': i,
             'showlegend' : True,
             'customdata': df[df[value2vary] == i].index,
             'type': 'scattermapbox'
-        } for i in df[value2vary].unique()] +
+        } for i in df[value2vary].unique()]
+            +
             [{
-            'lat': dff[dff[value2vary] == i]['latitude_deg'],
-            'lon': dff[dff[value2vary] == i]['longitude_deg'],
-            'text': dff[dff[value2vary] == i]['env_material'],
+            'lat': dff['latitude_deg'],
+            'lon': dff['longitude_deg'],
+            'text': dff['env_material'],
             'marker': {
-                'size': dff[dff[value2vary] == i]['observations_deblur_90bp']/5000,
+                'size': dff['observations_deblur_90bp']/10000,
                 'opacity': 1,
-                'color':color_table[i],
+                'color':[color_table[i] for i in dff[value2vary].values],
                 'line': {'width': 10, 'color': 'white'}},
-            'name': i,
+            'name': dff[value2vary].values,
             'showlegend' : False,
-            'customdata': dff[dff[value2vary] == i].index,
+            'customdata': dff.index,
             'type': 'scattermapbox'
-        } for i in dff[value2vary].unique()],
+        } ],
         'layout': {
             'mapbox': {
                 'accesstoken': 'pk.eyJ1IjoiY2hyaWRkeXAiLCJhIjoiY2ozcGI1MTZ3MDBpcTJ3cXR4b3owdDQwaCJ9.8jpMunbKjdq1anXwU5gxIw',
                 'style': 'mapbox://styles/mapbox/dark-v9',
-                'center': {'lat': dff.latitude_deg.mean(), 'lon': dff.longitude_deg.mean()},
-                'zoom': 3,
+                'zoom': 0,
             },
             'hovermode': 'closest',
+            'dragmode': 'select',
             'margin': {'l': 40, 'r': 0, 'b': 10, 't': 10}
         }
         
@@ -140,7 +155,8 @@ main_layout = html.Div([
         html.Div([
             dcc.Graph(id='MDS',
                 selectedData={'points': [], 'range': None}, 
-                style={'height':'100%'}),
+                style={'height':'100%'},
+                ),
             ], className="four columns", 
             style={'boxShadow': '5px 5px 5px 5px rgba(204,204,204,0.4)',
                    'padding': '0px 0px 0px 0px'}),
@@ -214,52 +230,76 @@ def generate_table(hoverData, max_rows=10):
 
 @app.callback(
     dash.dependencies.Output('map', 'figure'),
-    [dash.dependencies.Input('MDS', 'selectedData')])
-def update_MDS_plot(selectedData):
-    selected_points = [p['customdata'] for p in selectedData['points']]
-    dff = df.loc[selected_points]
+    [dash.dependencies.Input('MDS', 'selectedData'),
+    ])
+    
+def update_map(*selectedDatas):
+    index = df.index
+    # filter the dataframe by the selected points
+    for i, hover_data in enumerate(selectedDatas):
+        selected_index = [
+            p['customdata'] for p in selectedDatas[i]['points']
+            # the first trace that includes all the data
+            if p['curveNumber'] == 0
+        ]
+        
+        index = np.intersect1d(index, selected_index)
+   
+    dff = df.loc[index]
     return (plot_map(dff))
 
 @app.callback(
     dash.dependencies.Output('MDS', 'figure'),
-    [dash.dependencies.Input('map', 'selectedData')])
-def update_MDS_plot(selectedData):
-    selected_points = [p['customdata'] for p in selectedData['points']]
-    dff = df.loc[selected_points]
+    [dash.dependencies.Input('map', 'selectedData'),
+     ])
+def update_MDS_plot(*selectedDatas):
+    index = df.index
+    # filter the dataframe by the selected points
+    for i, hover_data in enumerate(selectedDatas):
+        selected_index = [
+            p['customdata'] for p in selectedDatas[i]['points']
+            # the first trace that includes all the data
+            if p['curveNumber'] == 0
+        ]
+        
+        index = np.intersect1d(index, selected_index)
+   
+    dff = df.loc[index]
     return ({
                 'data': 
                       [go.Scatter(
-                        x=df[df[value2vary] == i]['t_SNE_x'],
-                        y=df[df[value2vary] == i]['t_SNE_y'],
-                        text=df[df[value2vary] == i]['env_material'],
+                        x=df['t_SNE_x'],
+                        y=df['t_SNE_y'],
+                        text=df['env_material'],
                         showlegend = False,
-                        name = i,
+                        name = df[value2vary],
                         mode = 'markers',
-                        customdata = df[df[value2vary] == i].index,
-                        marker={
-                            'opacity':0.7,
-                            'size': 10,
-                            'color':color_table_desat[i],
-                            'line': {'width': 1, 'color': 'white'},
-                        }) for i in df[value2vary].unique()] +
-                        
-                        [go.Scatter(
-                        x=dff[dff[value2vary] == i]['t_SNE_x'],
-                        y=dff[dff[value2vary] == i]['t_SNE_y'],
-                        text=dff[dff[value2vary] == i]['env_material'],
-                        showlegend = False,
-                        name = i,
-                        mode = 'markers',
-                        customdata = dff[dff[value2vary] == i].index,
+                        customdata = df.index,
                         marker={
                             'opacity':1,
                             'size': 10,
-                            'color':color_table[i],
+                            'color': [color_table_desat[i] for i in df[value2vary].values],
                             'line': {'width': 1, 'color': 'white'},
-                        }) for i in dff[value2vary].unique()],
+                        })] +
+                        
+                        [go.Scatter(
+                        x=dff['t_SNE_x'],
+                        y=dff['t_SNE_y'],
+                        text=dff['env_material'],
+                        showlegend = False,
+                        name = dff[value2vary],
+                        mode = 'markers',
+                        customdata = dff.index,
+                        marker={
+                            'opacity':1,
+                            'size': 10,
+                            'color':[color_table[i] for i in dff[value2vary].values],
+                            'line': {'width': 1, 'color': 'white'},
+                        })],
                 'layout': go.Layout(
                     margin={'l': 0, 'b': 0, 't': 10, 'r': 0},
                     hovermode='closest',
+                    dragmode= 'select',
                     xaxis=dict(
                     autorange=True,
                     showgrid=False,
@@ -268,7 +308,7 @@ def update_MDS_plot(selectedData):
                     autotick=True,
                     ticks='',
                     showticklabels=False
-                            ),
+                    ),
                     yaxis=dict(
                     autorange=True,
                     showgrid=False,
