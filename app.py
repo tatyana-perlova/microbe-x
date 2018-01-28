@@ -78,8 +78,8 @@ def generate_table(dataframe, max_rows=2):
 #!===========Read data==========================================================
 #!=============================================================================
 
-df = pd.read_csv('/home/perlusha/Work/2017/2017.01.14-EMP/dash/data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD.by_loc.csv', index_col = 0)
-distance = pd.read_csv('/home/perlusha/Work/2017/2017.01.14-EMP/dash/data/emp_deblur_90bp.qc_filtered_soil.JSD_distance_matrix.by_loc.csv', index_col = 0)
+df = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD.by_loc.csv', index_col = 0)
+distance = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.JSD_distance_matrix.by_loc.csv', index_col = 0)
 columns = ['env_biome_2', 'pos'
        ]
 
