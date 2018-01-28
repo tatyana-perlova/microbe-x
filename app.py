@@ -6,8 +6,10 @@ import pandas as pd
 import numpy as np
 import colorlover as cl
 
-app = dash.Dash()
+app = dash.Dash(__name__)
+server = app.server
 app.config.supress_callback_exceptions = True
+
 
 #!===========Functions=========================================================
 #!=============================================================================
