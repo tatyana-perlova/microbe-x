@@ -5,10 +5,7 @@ import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
 import colorlover as cl
-import flask
 
-
-server = flask.Flask(__name__)
 app = dash.Dash(__name__)
 app.config.supress_callback_exceptions = True
 
