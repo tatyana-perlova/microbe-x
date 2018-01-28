@@ -27,8 +27,8 @@ def plot_map(dff):
             'text': df[df[value2vary] == i]['env_material'],
             'marker': {
                 'size': df[df[value2vary] == i]['observations_deblur_90bp']/5000,
-                'opacity': 0.5,
-                'color':color_table[i],
+                'opacity': 0.7,
+                'color':color_table_desat[i],
                 'line': {'width': 10, 'color': 'white'}},
             'name': i,
             'showlegend' : True,
@@ -43,7 +43,7 @@ def plot_map(dff):
                 'size': dff[dff[value2vary] == i]['observations_deblur_90bp']/5000,
                 'opacity': 1,
                 'color':color_table[i],
-                'line': {'width': 10, 'color': 'red'}},
+                'line': {'width': 10, 'color': 'white'}},
             'name': i,
             'showlegend' : False,
             'customdata': dff[dff[value2vary] == i].index,
@@ -52,7 +52,7 @@ def plot_map(dff):
         'layout': {
             'mapbox': {
                 'accesstoken': 'pk.eyJ1IjoiY2hyaWRkeXAiLCJhIjoiY2ozcGI1MTZ3MDBpcTJ3cXR4b3owdDQwaCJ9.8jpMunbKjdq1anXwU5gxIw',
-                'style': 'mapbox://styles/mapbox/outdoors-v9',
+                'style': 'mapbox://styles/mapbox/dark-v9',
                 'center': {'lat': dff.latitude_deg.mean(), 'lon': dff.longitude_deg.mean()},
                 'zoom': 3,
             },
@@ -86,13 +86,16 @@ columns = ['env_biome_2', 'pos'
 value2vary = 'envo_biome_2'
 
 unique_types = df[value2vary].unique()                       
-colors = cl.scales['9']['qual']['Set1']                   
+colors = cl.scales['9']['qual']['Set1']
+colors_desat = cl.scales['9']['qual']['Pastel1'] 
 if len(unique_types) > len(colors):                          
-   colors = cl.interp(colors, len(unique_types))            
+   colors = cl.interp(colors, len(unique_types))
+   colors_desat = cl.interp(colors_desat, len(unique_types)) 
 else:                                                        
-   colors = colors[:len(unique_types)]                      
-color_table = dict(zip(unique_types, colors))  
-
+   colors = colors[:len(unique_types)] 
+   colors_desat = colors_desat[:len(unique_types)] 
+color_table = dict(zip(unique_types, colors)) 
+color_table_desat = dict(zip(unique_types, colors_desat)) 
 
 #!===========Set up navbar======================================================
 #!=============================================================================
@@ -234,9 +237,9 @@ def update_MDS_plot(selectedData):
                         mode = 'markers',
                         customdata = df[df[value2vary] == i].index,
                         marker={
-                            'opacity':0.3,
+                            'opacity':0.7,
                             'size': 10,
-                            'color':color_table[i],
+                            'color':color_table_desat[i],
                             'line': {'width': 1, 'color': 'white'},
                         }) for i in df[value2vary].unique()] +
                         
@@ -252,7 +255,7 @@ def update_MDS_plot(selectedData):
                             'opacity':1,
                             'size': 10,
                             'color':color_table[i],
-                            'line': {'width': 1, 'color': 'red'},
+                            'line': {'width': 1, 'color': 'white'},
                         }) for i in dff[value2vary].unique()],
                 'layout': go.Layout(
                     margin={'l': 0, 'b': 0, 't': 10, 'r': 0},
