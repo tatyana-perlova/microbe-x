@@ -128,11 +128,11 @@ app.layout = html.Div([
             html.Ul([
                 html.Li([dcc.Link('Biome', href='/')]),
                 html.Li([dcc.Link('Location', href='/location')]),
-                html.Li([html.A('Slides', href='https://docs.google.com/presentation/d/15ScYtoNWE8T6FCDI1kKLxvBnglE9ayrX7PT_3mIuPH0/edit#slide=id.g326b92af0b_0_0')])
+                html.Li([html.A('Slides', href='/slides')])
             ], className='nav navbar-nav',
             style={'padding-top': '25px'})
         ], className='container-fluid')
-    ], className='navbar navbar-inverse navbar-fixed-top',
+    ], className='navbar navbar-inverse navbar-fixed-top', style = {'background': '#014d4e'}
             ),
     html.Div(id='page-content', style={'padding-top': '90px', 'line-height': '40px'})
 ], style={'padding': '0px 10px 80px 10px',
@@ -168,19 +168,18 @@ main_layout = html.Div([
 ])
                 
 ##!============Location explorer layout====================================================
-#location_layout = html.Div([
-#    html.H1('EMP samples'),
-#    html.Div([
-#        html.Div([
-#            dcc.Graph(id='map', selectedData={'points': [], 'range': None},style={'height':'100%'}),
-#            ], className="seven columns"),
-#
-#        html.Div([
-#            dcc.Graph(id='MDS', selectedData={'points': [], 'range': None}, style={'height':'100%'}),
-#            ], className="four columns")
-#    ], className="row")
-#])
-            
+slides_layout = html.Div([
+    html.Div([
+    html.H2('Find out more about the project', style = {'display': 'block', 'textAlight': 'center', 'margin':'auto', 'margin-top': '25px'})
+    ]),
+    html.Div([
+    html.Iframe(src='https://docs.google.com/presentation/d/e/2PACX-1vT-0AZi8An7IcQJ1Y1H-7P-UvuIzajaVph8A-HANFbcy-nl3KhyCF_9utQ2XzTW2fGc3TOO63Kj8dU6/embed?start=false&loop=false&delayms=3000',
+                style = {'width': '960px', 'framborder': '0', 'height': '749px',
+                         'textAlight': 'center', 'display': 'block', 'margin': 'auto','margin-top': '20px'})
+                ])
+    
+    ])
+          
 #!===============Callbacks=====================================================
 #!=============================================================================
 
@@ -189,9 +188,9 @@ main_layout = html.Div([
     dash.dependencies.Output('page-content', 'children'),
     [dash.dependencies.Input('url', 'pathname')])
 def display_page(pathname):
-#    if pathname == '/location':
-#        return location_layout
-#    else:
+   if pathname == '/slides':
+       return slides_layout
+   else:
         return main_layout
     
 @app.callback(
