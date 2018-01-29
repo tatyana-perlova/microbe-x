@@ -128,7 +128,7 @@ app.layout = html.Div([
             html.Ul([
                 html.Li([dcc.Link('Biome', href='/')]),
                 html.Li([dcc.Link('Location', href='/location')]),
-                html.Li([html.A('Slides', href='https://docs.google.com/presentation/d/15ScYtoNWE8T6FCDI1kKLxvBnglE9ayrX7PT_3mIuPH0/edit#slide=id.g3283141848_0_114')])
+                html.Li([html.A('Slides', href='https://docs.google.com/presentation/d/15ScYtoNWE8T6FCDI1kKLxvBnglE9ayrX7PT_3mIuPH0/pub?start=false&loop=false&delayms=3000')])
             ], className='nav navbar-nav',
             style={'padding-top': '25px'})
         ], className='container-fluid')
