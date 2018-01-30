@@ -67,7 +67,7 @@ def plot_map(dff):
         'layout': {
             'mapbox': {
                 'accesstoken': 'pk.eyJ1IjoiY2hyaWRkeXAiLCJhIjoiY2ozcGI1MTZ3MDBpcTJ3cXR4b3owdDQwaCJ9.8jpMunbKjdq1anXwU5gxIw',
-                'style': 'mapbox://styles/mapbox/dark-v9',
+                'style': 'mapbox://styles/mapbox/light-v9',
                 'zoom': 0,
             },
             'hovermode': 'closest',
