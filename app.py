@@ -31,7 +31,7 @@ def plot_map(dff):
                 'size': df['observations_deblur_90bp']/10000,
                 'opacity': 1,
                 'color':[color_table_desat[i] for i in df['envo_tmp'].values],
-                'line': {'width': 10, 'color': 'white'}},
+                'line': {'width': 1000, 'color': 'black'}},
             'name': df['envo_tmp'].values,
             'showlegend' : False,
             'customdata': df.index,
@@ -46,7 +46,7 @@ def plot_map(dff):
                 'size': dff['observations_deblur_90bp']/10000,
                 'opacity': 1,
                 'color':[color_table[i] for i in dff['envo_tmp'].values],
-                'line': {'width': 10, 'color': 'white'}},
+                'line': {'width': 1000, 'color': 'black'}},
             'name': dff['envo_tmp'].values,
             'showlegend' : False,
             'customdata': dff.index,
@@ -55,12 +55,12 @@ def plot_map(dff):
         'layout': {
             'mapbox': {
                 'accesstoken': 'pk.eyJ1IjoicGVybG92YSIsImEiOiJjamN3ZmltYWMxYW1rMnhyeDcyeWt5MnlmIn0.hX0UCxkMYymXgFTvjqG6Zg',
-                'style': 'mapbox://styles/perlova/cjd294jtv36m62ttblrvllc18',
+                'style': 'mapbox://styles/perlova/cjd40swkw4tx72rqo2lm262p9',
                 'zoom': 1,
             },
             'hovermode': 'closest',
             'dragmode': 'select',
-            'margin': {'l': 40, 'r': 40, 'b': 10, 't': 10},
+            'margin': {'l': 0, 'r': 0, 'b': 0, 't': 0},
         }
         
     }
@@ -81,7 +81,7 @@ def plot_MDS(dff):
                             'opacity':1,
                             'size': 10,
                             'color': color_table_desat[i],
-                            'line': {'width': 1, 'color': 'white'},
+                            'line': {'width': 1, 'color': 'black'},
                         }) for i in df['envo_tmp'].unique()] +
                         
                         [go.Scatter(
@@ -96,10 +96,10 @@ def plot_MDS(dff):
                             'opacity':1,
                             'size': 10,
                             'color':[color_table[i] for i in dff['envo_tmp'].values],
-                            'line': {'width': 1, 'color': 'white'},
+                            'line': {'width': 1, 'color': 'black'},
                         })],
                 'layout': go.Layout(
-                    margin={'l': 0, 'b': 0, 't': 10, 'r': 0},
+                    margin={'l': 0, 'b': 0, 't': 0, 'r': 0},
                     hovermode='closest',
                     dragmode= 'select',
                     xaxis=dict(
@@ -166,20 +166,41 @@ To see if it makes sense to combine samples from the same locations I did hierar
 
 #!===========Define constants=====================================================
 #!=============================================================================
-unique_types = df['envo_biome_2'].unique()                       
-colors = cl.scales['9']['qual']['Set1']
-colors_desat = cl.scales['9']['qual']['Pastel1'] 
-if len(unique_types) > len(colors):                          
-   colors = cl.interp(colors, len(unique_types))
-   colors_desat = cl.interp(colors_desat, len(unique_types)) 
-else:                                                        
-   colors = colors[:len(unique_types)] 
-   colors_desat = colors_desat[:len(unique_types)] 
-color_table = dict(zip(unique_types, colors)) 
-color_table_desat = dict(zip(unique_types, colors_desat)) 
+#unique_types = df['envo_biome_2'].unique()                       
+#colors = cl.scales['9']['qual']['Set1']
+#colors_desat = cl.scales['9']['qual']['Pastel1'] 
+#if len(unique_types) > len(colors):                          
+   #colors = cl.interp(colors, len(unique_types))
+   #colors_desat = cl.interp(colors_desat, len(unique_types)) 
+#else:                                                        
+   #colors = colors[:len(unique_types)] 
+   #colors_desat = colors_desat[:len(unique_types)] 
+#color_table = dict(zip(unique_types, colors)) 
+#color_table_desat = dict(zip(unique_types, colors_desat)) 
 
-color_table['other'] = '#363737'
-color_table_desat['other'] = '#d8dcd6'
+#color_table['other'] = '#363737'
+#color_table_desat['other'] = '#d8dcd6'
+
+color_table = {'cropland biome': '#840000',
+ 'dense settlement biome': '#960056',
+ 'desert biome': '#c65102',
+ 'forest biome': '#002d04',
+ 'freshwater biome': '#00035b',
+ 'grassland biome': '#033500',
+ 'other': '#363737',
+ 'shrubland biome': '#373e02',
+ 'tundra biome': '#014d4e'}
+
+color_table_desat = {'cropland biome': '#ff474c',
+ 'dense settlement biome': '#fa5ff7',
+ 'desert biome': '#fdaa48',
+ 'forest biome': '#4f9153',
+ 'freshwater biome': '#95d0fc',
+ 'grassland biome': '#96f97b',
+ 'other': '#d8dcd6',
+ 'shrubland biome': '#acbf69',
+ 'tundra biome': '#90e4c1'}
+
 columns = ['envo_biome_2', 'pos']
 
 env_re = re.compile(r'.+(?= biome)')
@@ -224,29 +245,29 @@ main_layout = html.Div([
                 marks=slider_values,
                 value=5,
             )], 
-        style = {'margin-top': '10px', 'margin-bottom': '50px', 'margin-left': '20px', "width": "90%",'textAlign': 'center'}),
+        style = {'margin-top': '20px', 'margin-bottom': '50px', 'margin-left': '20px', "width": "90%",'textAlign': 'center'}),
     html.Div([
         html.H3('Select points to explore the connection between geography and community structure',
                 style = {'fontsize': '14','textAlign': 'left'})
         ],
-        style = {'textAlign': 'center',  'margin-left': '20px'}),
+        style = {'padding': '0px 0px 0px 0px', 'margin-left': '20px'}),
     html.Div([
         html.Div([
             dcc.Graph(id='map', 
                 selectedData={'points': [], 'range': None},
                 style={'height':'100%'}, 
                 ),
-            ], className="eight columns",
-            style={}),
+            ], className="seven columns",
+            style={'padding': '0px 0px 0px 0px', 'margin-left': '30px', 'border': '1px solid black'}),
 
         html.Div([
             dcc.Graph(id='MDS',
                 selectedData={'points': [], 'range': None}, 
-                style={'height':'100%','background': '#029386'},
+                style={'height':'90%','background': '#029386'},
                 ),
             ], className="four columns", 
             style={'background': '#029386',
-                   'padding': '0px 0px 0px 0px', 'margin-left': '20px'}),
+                   'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-right': '20px', 'border': '1px solid black'}),
         #html.Div([
        #generate_table(df)
        #])
