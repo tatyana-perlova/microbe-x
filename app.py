@@ -5,7 +5,8 @@ import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
 import colorlover as cl
-
+import base64
+import re
 app = dash.Dash(__name__)
 server = app.server
 app.config.supress_callback_exceptions = True
@@ -21,61 +22,108 @@ def get_neighbours(dff, threshold = 0.2):
 
 def plot_map(dff):
     return {
-        'data': [{
+        'data': 
+            [{
             'lat': df['latitude_deg'],
             'lon': df['longitude_deg'],
-            'text': df['env_material'],
+            'text': df['envo_biome_2'],
             'marker': {
                 'size': df['observations_deblur_90bp']/10000,
-                'opacity': 0,
-                'color':[color_table_desat[i] for i in df[value2vary].values],
-                },
-            'name': df[value2vary].values,
+                'opacity': 1,
+                'color':[color_table_desat[i] for i in df['envo_tmp'].values],
+                'line': {'width': 10, 'color': 'white'}},
+            'name': df['envo_tmp'].values,
             'showlegend' : False,
             'customdata': df.index,
             'type': 'scattermapbox'
-        }] +
-            [{
-            'lat': df[df[value2vary] == i]['latitude_deg'],
-            'lon': df[df[value2vary] == i]['longitude_deg'],
-            'text': df[df[value2vary] == i]['env_material'],
-            'marker': {
-                'size': df[df[value2vary] == i]['observations_deblur_90bp']/10000,
-                'opacity': 1,
-                'color':color_table_desat[i],
-                'line': {'width': 10, 'color': 'white'}},
-            'name': i,
-            'showlegend' : True,
-            'customdata': df[df[value2vary] == i].index,
-            'type': 'scattermapbox'
-        } for i in df[value2vary].unique()]
+        }]
             +
             [{
             'lat': dff['latitude_deg'],
             'lon': dff['longitude_deg'],
-            'text': dff['env_material'],
+            'text': dff['envo_biome_2'],
             'marker': {
                 'size': dff['observations_deblur_90bp']/10000,
                 'opacity': 1,
-                'color':[color_table[i] for i in dff[value2vary].values],
+                'color':[color_table[i] for i in dff['envo_tmp'].values],
                 'line': {'width': 10, 'color': 'white'}},
-            'name': dff[value2vary].values,
+            'name': dff['envo_tmp'].values,
             'showlegend' : False,
             'customdata': dff.index,
             'type': 'scattermapbox'
         } ],
         'layout': {
             'mapbox': {
-                'accesstoken': 'pk.eyJ1IjoiY2hyaWRkeXAiLCJhIjoiY2ozcGI1MTZ3MDBpcTJ3cXR4b3owdDQwaCJ9.8jpMunbKjdq1anXwU5gxIw',
-                'style': 'mapbox://styles/mapbox/light-v9',
-                'zoom': 0,
+                'accesstoken': 'pk.eyJ1IjoicGVybG92YSIsImEiOiJjamN3ZmltYWMxYW1rMnhyeDcyeWt5MnlmIn0.hX0UCxkMYymXgFTvjqG6Zg',
+                'style': 'mapbox://styles/perlova/cjd294jtv36m62ttblrvllc18',
+                'zoom': 1,
             },
             'hovermode': 'closest',
             'dragmode': 'select',
-            'margin': {'l': 40, 'r': 0, 'b': 10, 't': 10}
+            'margin': {'l': 40, 'r': 40, 'b': 10, 't': 10},
         }
         
     }
+            
+def plot_MDS(dff):
+    return {
+                'data': 
+                      
+                      [go.Scatter(
+                        x=df[df['envo_tmp'] == i]['t_SNE_x'],
+                        y=df[df['envo_tmp'] == i]['t_SNE_y'],
+                        text=df[df['envo_tmp'] == i]['envo_biome_2'],
+                        showlegend = True,
+                        name = i,
+                        mode = 'markers',
+                        customdata = df.index,
+                        marker={
+                            'opacity':1,
+                            'size': 10,
+                            'color': color_table_desat[i],
+                            'line': {'width': 1, 'color': 'white'},
+                        }) for i in df['envo_tmp'].unique()] +
+                        
+                        [go.Scatter(
+                        x=dff['t_SNE_x'],
+                        y=dff['t_SNE_y'],
+                        text=dff['envo_biome_2'],
+                        showlegend = False,
+                        name = dff['envo_tmp'],
+                        mode = 'markers',
+                        customdata = dff.index,
+                        marker={
+                            'opacity':1,
+                            'size': 10,
+                            'color':[color_table[i] for i in dff['envo_tmp'].values],
+                            'line': {'width': 1, 'color': 'white'},
+                        })],
+                'layout': go.Layout(
+                    margin={'l': 0, 'b': 0, 't': 10, 'r': 0},
+                    hovermode='closest',
+                    dragmode= 'select',
+                    xaxis=dict(
+                    autorange=True,
+                    showgrid=False,
+                    zeroline=False,
+                    showline=False,
+                    autotick=True,
+                    ticks='',
+                    showticklabels=False
+                    ),
+                    yaxis=dict(
+                    autorange=True,
+                    showgrid=False,
+                    zeroline=False,
+                    showline=False,
+                    autotick=True,
+                    ticks='',
+                    showticklabels=False),
+                    legend = {'x': 0.01, 'y': 0.99, 'orientation': 'v'},
+                    #plot_bgcolor='#029386'
+                            ),
+                'box': go.Box(visible=True)
+            }
             
 def generate_table(dataframe, max_rows=2):
     return html.Table(
@@ -93,14 +141,32 @@ def generate_table(dataframe, max_rows=2):
 
 df = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD.by_loc.csv', index_col = 0)
 distance = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.JSD_distance_matrix.by_loc.csv', index_col = 0)
-columns = ['env_biome_2', 'pos'
-       ]
+df.loc[df.envo_biome_2 == 'anthropogenic terrestrial biome', 
+                     'envo_biome_2'] = df[df.envo_biome_2 == 'anthropogenic terrestrial biome'].envo_biome_3
+
+dendro = './pictures/dendro.png' # replace with your own image                                                                      
+encoded_image = base64.b64encode(open(dendro, 'rb').read())
+
+background = '''
+## Background
+**Food insecurity.**
+Food security is one of the biggest challenges humanity is facing in the 21st century both due to increasing population size and extreme weather conditions brought on by climate change. Right now 3 million children die every year due to undernutrition. And decrease in production in any one of the few major plants that sustain civilization due to drought, soil salinization, temperature extremes or pathogens (harmful microbes) might increase this number even further. Traditional agricultural technologies such as breeding plants with beneficial traits, supplementing soil with fertilizers, spraying crops with pesticides and insecticides, are only effective in a set of defined of conditions and are unable to provide long-term protection or sustain crop productivity in a changing environment. Moreover use and overuse of pesticides and insecticides has harmful side effects such as decline in the population of plant pollinators - another threat to food security. So in recent years a lot of effort and resources have been invested in developing new technologies that would increase crop plants productivity, tolerance to stress and protect them from pathogens. 
+
+**Symbiotic relationships between plants and microbes.**
+One of the most promising directions is exploring beneficial interactions between plants and microbes. It turns out that multicellular organisms - plants and animals, can be considered as ecosystems inhabited by many different species of microbes (microbiome). Microbes living on the roots and in the soil around (rhizosphere) can benefit the plant in several ways. Microbes convert nutrients present in the soil thereby make them available for plant intake and protect plant from pathogenic bacteria or stressful environmental conditions, while plants provide carbon source for bacteria to feed on.
+
+**Soil microbiome vs plant microbiome.**
+To exploit beneficial interactions between plants and microbes for enhancing agricultural sustainability and food security it is important to understand what are the major factors that define plant microbiome. Microbial composition of the plant rhizosphere is largely determined by the microbial composition of the soil. It is therefore reasonable to assume that effectiveness of the external microbial supplements will depend on the native microbial community structure as well.'''
+data_analysis = '''
+## Data Insights
+**Samples from the same location have similar bacterial composition.**
+To see if it makes sense to combine samples from the same locations I did hierarchical clustering of samples based on OTU composition ( I used cosine distance metric to calculate the pairwise distances between each pair of n-dimensional vectors describing each sample, where n number of OTUs). Then I plotted resulting dendrogram on top of the geographical distance matrix (see below). It does look like for the most part samples from the same location are also similar to each other in terms of the composition, at least if you consider the most abundant OTUs.
+
+'''
 
 #!===========Define constants=====================================================
 #!=============================================================================
-value2vary = 'envo_biome_2'
-
-unique_types = df[value2vary].unique()                       
+unique_types = df['envo_biome_2'].unique()                       
 colors = cl.scales['9']['qual']['Set1']
 colors_desat = cl.scales['9']['qual']['Pastel1'] 
 if len(unique_types) > len(colors):                          
@@ -112,6 +178,14 @@ else:
 color_table = dict(zip(unique_types, colors)) 
 color_table_desat = dict(zip(unique_types, colors_desat)) 
 
+color_table['other'] = '#363737'
+color_table_desat['other'] = '#d8dcd6'
+columns = ['envo_biome_2', 'pos']
+
+env_re = re.compile(r'.+(?= biome)')
+
+slider_values = {i: env_re.findall(df['envo_biome_2'].unique()[i])[0] for i in range(len(df['envo_biome_2'].unique()))}
+slider_values[len(df['envo_biome_2'].unique())] = 'all'
 #!===========Set up navbar======================================================
 #!=============================================================================
 
@@ -128,7 +202,7 @@ app.layout = html.Div([
             html.Ul([
                 html.Li([dcc.Link('Biome', href='/')]),
                 html.Li([dcc.Link('Location', href='/location')]),
-                html.Li([html.A('Slides', href='/slides')])
+                html.Li([html.A('About the project', href='/slides')])
             ], className='nav navbar-nav',
             style={'padding-top': '25px'})
         ], className='container-fluid')
@@ -141,25 +215,38 @@ app.layout = html.Div([
 
 #!============Main tab layout====================================================
 main_layout = html.Div([
-    html.H2('Select points to explore the connection between geography and community structure',className="twelve columns",
-           style = {'fontsize': '14'}),
+    html.Div([
+        html.H3('Select an environment', style = {'fontsize': '14','textAlign': 'left'}),
+        dcc.Slider(
+                id = 'biome_slider',
+                min=0,
+                max=len(slider_values.keys()) - 1,
+                marks=slider_values,
+                value=5,
+            )], 
+        style = {'margin-top': '10px', 'margin-bottom': '50px', 'margin-left': '20px', "width": "90%",'textAlign': 'center'}),
+    html.Div([
+        html.H3('Select points to explore the connection between geography and community structure',
+                style = {'fontsize': '14','textAlign': 'left'})
+        ],
+        style = {'textAlign': 'center',  'margin-left': '20px'}),
     html.Div([
         html.Div([
             dcc.Graph(id='map', 
                 selectedData={'points': [], 'range': None},
-                style={'height':'80%'}, 
+                style={'height':'100%'}, 
                 ),
             ], className="eight columns",
-            style={'boxShadow': '5px 5px 5px 5px rgba(204,204,204,0.4)'}),
+            style={}),
 
         html.Div([
             dcc.Graph(id='MDS',
                 selectedData={'points': [], 'range': None}, 
-                style={'height':'100%'},
+                style={'height':'100%','background': '#029386'},
                 ),
             ], className="four columns", 
-            style={'boxShadow': '5px 5px 5px 5px rgba(204,204,204,0.4)',
-                   'padding': '0px 0px 0px 0px'}),
+            style={'background': '#029386',
+                   'padding': '0px 0px 0px 0px', 'margin-left': '20px'}),
         #html.Div([
        #generate_table(df)
        #])
@@ -167,19 +254,30 @@ main_layout = html.Div([
     ], className="row"),
 ])
                 
-##!============Location explorer layout====================================================
+##!============About layout====================================================
 slides_layout = html.Div([
     html.Div([
-    html.H2('Find out more about the project', style = {'display': 'block', 'textAlight': 'center', 'margin':'auto', 'margin-top': '25px'})
-    ]),
+        dcc.Markdown(background, className='col-md-12')], 
+    style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
+    html.Div([
+        html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
+                 style={'height': '300px', 'textAlight': 'center'})
+        ], style={'textAlign': 'center'}),
+    html.Div([
+        dcc.Markdown(data_analysis, className='col-md-12')], 
+    style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
+    html.Div([
+        html.H2('Find out more about the project', style = {'display': 'block', 'textAlign': 'center', 'margin':'auto', 'margin-top': '25px'})
+        ]),
     html.Div([
     html.Iframe(src='https://docs.google.com/presentation/d/e/2PACX-1vT-0AZi8An7IcQJ1Y1H-7P-UvuIzajaVph8A-HANFbcy-nl3KhyCF_9utQ2XzTW2fGc3TOO63Kj8dU6/embed?start=false&loop=false&delayms=3000',
                 style = {'width': '960px', 'framborder': '0', 'height': '749px',
-                         'textAlight': 'center', 'display': 'block', 'margin': 'auto','margin-top': '20px'})
+                         'textAlign': 'center', 'display': 'block', 'margin': 'auto','margin-top': '20px'})
                 ])
     
     ])
           
+       
 #!===============Callbacks=====================================================
 #!=============================================================================
 
@@ -229,96 +327,42 @@ def generate_table(hoverData, max_rows=10):
 
 @app.callback(
     dash.dependencies.Output('map', 'figure'),
-    [dash.dependencies.Input('MDS', 'selectedData'),
+    [dash.dependencies.Input('biome_slider', 'value'),
+     dash.dependencies.Input('MDS', 'selectedData'),
     ])
     
-def update_map(*selectedDatas):
-    index = df.index
-    # filter the dataframe by the selected points
-    for i, hover_data in enumerate(selectedDatas):
-        selected_index = [
-            p['customdata'] for p in selectedDatas[i]['points']
-            # the first trace that includes all the data
-            if p['curveNumber'] == 0
-        ]
-        
-        index = np.intersect1d(index, selected_index)
-   
-    dff = df.loc[index]
+def update_map(value, selectedData):
+    if slider_values[value] != 'all':
+        df['envo_tmp'] = 'other'
+        df.loc[df.envo_biome_2 == '{} biome'.format(slider_values[value]), 'envo_tmp'] = df.loc[df.envo_biome_2 == '{} biome'.format(slider_values[value]), 'envo_biome_2']
+    else:
+         df['envo_tmp'] = df['envo_biome_2']
+         
+    selected_index = list(set([
+        p['customdata'] for p in selectedData['points']
+    ]))
+       
+    dff = df.loc[selected_index]
     return (plot_map(dff))
 
 @app.callback(
     dash.dependencies.Output('MDS', 'figure'),
-    [dash.dependencies.Input('map', 'selectedData'),
+    [dash.dependencies.Input('biome_slider', 'value'),
+     dash.dependencies.Input('map', 'selectedData'),
      ])
-def update_MDS_plot(*selectedDatas):
-    index = df.index
-    # filter the dataframe by the selected points
-    for i, hover_data in enumerate(selectedDatas):
-        selected_index = [
-            p['customdata'] for p in selectedDatas[i]['points']
-            # the first trace that includes all the data
-            if p['curveNumber'] == 0
-        ]
-        
-        index = np.intersect1d(index, selected_index)
-   
-    dff = df.loc[index]
-    return ({
-                'data': 
-                      [go.Scatter(
-                        x=df['t_SNE_x'],
-                        y=df['t_SNE_y'],
-                        text=df['env_material'],
-                        showlegend = False,
-                        name = df[value2vary],
-                        mode = 'markers',
-                        customdata = df.index,
-                        marker={
-                            'opacity':1,
-                            'size': 10,
-                            'color': [color_table_desat[i] for i in df[value2vary].values],
-                            'line': {'width': 1, 'color': 'white'},
-                        })] +
-                        
-                        [go.Scatter(
-                        x=dff['t_SNE_x'],
-                        y=dff['t_SNE_y'],
-                        text=dff['env_material'],
-                        showlegend = False,
-                        name = dff[value2vary],
-                        mode = 'markers',
-                        customdata = dff.index,
-                        marker={
-                            'opacity':1,
-                            'size': 10,
-                            'color':[color_table[i] for i in dff[value2vary].values],
-                            'line': {'width': 1, 'color': 'white'},
-                        })],
-                'layout': go.Layout(
-                    margin={'l': 0, 'b': 0, 't': 10, 'r': 0},
-                    hovermode='closest',
-                    dragmode= 'select',
-                    xaxis=dict(
-                    autorange=True,
-                    showgrid=False,
-                    zeroline=False,
-                    showline=False,
-                    autotick=True,
-                    ticks='',
-                    showticklabels=False
-                    ),
-                    yaxis=dict(
-                    autorange=True,
-                    showgrid=False,
-                    zeroline=False,
-                    showline=False,
-                    autotick=True,
-                    ticks='',
-                    showticklabels=False)
-                            ),
-                'box': go.Box(visible=True)
-            })
+def update_MDS_plot(value, selectedData):
+    
+    if slider_values[value] != 'all':
+        df['envo_tmp'] = 'other'
+        df.loc[df.envo_biome_2 == '{} biome'.format(slider_values[value]), 'envo_tmp'] = df.loc[df.envo_biome_2 == '{} biome'.format(slider_values[value]), 'envo_biome_2']
+    else:
+         df['envo_tmp'] = df['envo_biome_2']
+    selected_index = list(set([
+    p['customdata'] for p in selectedData['points']
+    ]))
+
+    dff = df.loc[selected_index]
+    return (plot_MDS(dff))
 
 
 app.css.append_css({
