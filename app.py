@@ -65,6 +65,36 @@ def plot_map(dff):
         
     }
             
+def plot_map_2(dff):
+    return {
+        'data': 
+            [{
+            'lat': dff['latitude_deg'],
+            'lon': dff['longitude_deg'],
+            'text': dff['biome_labels'],
+            'marker': {
+                'size': dff['observations_deblur_90bp']/10000,
+                'opacity': 1,
+                'color': [color_table_desat[i] for i in dff['envo_biome_2'].values]},
+            'name': dff['biome_labels'].values,
+            'showlegend' : True,
+            'customdata': dff.index,
+            'type': 'scattermapbox'
+        } ],
+        'layout': {
+            'mapbox': {
+                'accesstoken': 'pk.eyJ1IjoicGVybG92YSIsImEiOiJjamN3ZmltYWMxYW1rMnhyeDcyeWt5MnlmIn0.hX0UCxkMYymXgFTvjqG6Zg',
+                'style': 'mapbox://styles/perlova/cjd40swkw4tx72rqo2lm262p9',
+                'zoom': 1,
+            },
+            'hovermode': 'closest',
+            'dragmode': 'select',
+            'margin': {'l': 0, 'r': 0, 'b': 0, 't': 0},
+            'legend': {'x': 0.5, 'y': 0.01, 'orientation': 'h'}
+        }
+        
+    }
+            
 def plot_MDS(dff):
     return {
                 'data': 
@@ -74,7 +104,7 @@ def plot_MDS(dff):
                         y=df[df['envo_tmp'] == i]['t_SNE_y'],
                         text=df[df['envo_tmp'] == i]['envo_biome_2'],
                         showlegend = True,
-                        name = i,
+                        name = [env_re.findall(i)[0] if i != 'other' else i][0],
                         mode = 'markers',
                         customdata = df.index,
                         marker={
@@ -91,6 +121,7 @@ def plot_MDS(dff):
                         showlegend = False,
                         name = dff['envo_tmp'],
                         mode = 'markers',
+                        hovertext = dff.country,
                         customdata = dff.index,
                         marker={
                             'opacity':1,
@@ -119,31 +150,63 @@ def plot_MDS(dff):
                     autotick=True,
                     ticks='',
                     showticklabels=False),
-                    legend = {'x': 0.01, 'y': 0.99, 'orientation': 'v'},
+                    legend = {'x': 0.56, 'y': 0.01, 'orientation': 'v'},
                     #plot_bgcolor='#029386'
                             ),
                 'box': go.Box(visible=True)
             }
             
-def generate_table(dataframe, max_rows=2):
+            
+def plot_pieplot(dff):
+    return {
+        'data':
+            [
+                go.Pie( 
+                     labels=topic_labels, 
+                     values=dff.iloc[0][topic_labels].values,
+                     customdata = topic_labels,
+                     textinfo = 'none',
+                     hole=0.5,
+                     sort = False,
+                     marker=dict(colors=topic_pallette, 
+                           line=dict(color='#000000', width=1))
+                        )
+            ],
+        'layout':
+                {
+        "annotations": [{
+                        "font": {"size": 15},
+                        "showarrow": False,
+                        "text": env_re.findall(dff.iloc[0]['envo_biome_2'])[0],
+                        "x": 0.5,
+                        "y": 0.5
+                        }
+                        ],
+        'legend': {}
+                }
+            }
+
+def generate_table(dff, max_rows=2):
     return html.Table(
         # Header
         [html.Tr([html.Th(col) for col in columns])] +
 
         # Body
         [html.Tr([
-            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
-        ]) for i in range(min(len(dataframe), max_rows))]
+            html.Td(dff.iloc[i][col]) for col in dff.columns
+        ]) for i in range(min(len(dff), max_rows))]
     )
 
 #!===========Read data==========================================================
 #!=============================================================================
 
-df = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD.by_loc.csv', index_col = 0)
+df = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD_LDA_topics.by_loc.csv', index_col = 0)
 distance = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.JSD_distance_matrix.by_loc.csv', index_col = 0)
 df.loc[df.envo_biome_2 == 'anthropogenic terrestrial biome', 
                      'envo_biome_2'] = df[df.envo_biome_2 == 'anthropogenic terrestrial biome'].envo_biome_3
 
+topic_labels = ['Topic{}'.format(i) 
+                        for i in range(20)]
 dendro = './pictures/dendro.png' # replace with your own image                                                                      
 encoded_image = base64.b64encode(open(dendro, 'rb').read())
 
@@ -166,20 +229,10 @@ To see if it makes sense to combine samples from the same locations I did hierar
 
 #!===========Define constants=====================================================
 #!=============================================================================
-#unique_types = df['envo_biome_2'].unique()                       
-#colors = cl.scales['9']['qual']['Set1']
-#colors_desat = cl.scales['9']['qual']['Pastel1'] 
-#if len(unique_types) > len(colors):                          
-   #colors = cl.interp(colors, len(unique_types))
-   #colors_desat = cl.interp(colors_desat, len(unique_types)) 
-#else:                                                        
-   #colors = colors[:len(unique_types)] 
-   #colors_desat = colors_desat[:len(unique_types)] 
-#color_table = dict(zip(unique_types, colors)) 
-#color_table_desat = dict(zip(unique_types, colors_desat)) 
-
-#color_table['other'] = '#363737'
-#color_table_desat['other'] = '#d8dcd6'
+topic_pallette = ['#c9b003', '#77a1b5', '#fffd01', '#34013f', '#d3494e', '#99cc04',
+       '#c6f808', '#7e4071', '#062e03', '#3b5b92', '#a2cffe', '#ff028d',
+       '#9d5783', '#feb308', '#4a0100', '#8d8468', '#dd85d7', '#748500',
+       '#d1b26f', '#fb5581']
 
 color_table = {'cropland biome': '#840000',
  'dense settlement biome': '#960056',
@@ -206,6 +259,7 @@ columns = ['envo_biome_2', 'pos']
 env_re = re.compile(r'.+(?= biome)')
 
 slider_values = {i: env_re.findall(df['envo_biome_2'].unique()[i])[0] for i in range(len(df['envo_biome_2'].unique()))}
+df['biome_labels'] = df.envo_biome_2.apply(lambda x: env_re.findall(x)[0])
 slider_values[len(df['envo_biome_2'].unique())] = 'all'
 #!===========Set up navbar======================================================
 #!=============================================================================
@@ -222,8 +276,8 @@ app.layout = html.Div([
                 ),
             html.Ul([
                 html.Li([dcc.Link('Biome', href='/')]),
-                html.Li([dcc.Link('Location', href='/location')]),
-                html.Li([html.A('About the project', href='/slides')])
+                html.Li([dcc.Link('Latent communities', href='/latent_communities')]),
+                html.Li([html.A('About the project', href='/about')])
             ], className='nav navbar-nav',
             style={'padding-top': '25px'})
         ], className='container-fluid')
@@ -256,7 +310,7 @@ main_layout = html.Div([
             dcc.Graph(id='map', 
                 selectedData={'points': [], 'range': None},
                 style={'height':'100%'}, 
-                ),
+                animate=True),
             ], className="seven columns",
             style={'padding': '0px 0px 0px 0px', 'margin-left': '30px', 'border': '1px solid black'}),
 
@@ -274,7 +328,34 @@ main_layout = html.Div([
         
     ], className="row"),
 ])
-                
+
+##!============Latent communities layout=======================================
+topic_layout = html.Div([
+    html.Div([
+        html.H3('Hover over points on the map and piechart to explore latent communities composition',
+                style = {'fontsize': '14','textAlign': 'left'})
+        ],
+        style = {'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-top': '10px'}),
+    html.Div([
+        html.Div([
+            dcc.Graph(id='map_2', 
+                hoverData={'points': [{'customdata': df.index[0]}], 'range': None},
+                style={'height':'100%'}, 
+                animate=True),
+            ], className="seven columns",
+            style={'padding': '0px 0px 0px 0px', 'margin-left': '30px', 'border': '1px solid black'}),
+      
+        html.Div([
+            dcc.Graph(id='pieplot',
+                hoverData={'points': [{'customdata':'Topic1'}], 'range': None},
+                style={'height':'90%','background': '#029386'},
+                ),
+            ], className="four columns", 
+            style={'background': '#029386',
+                   'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-right': '20px'}),       
+    ], className="row"),
+])
+
 ##!============About layout====================================================
 slides_layout = html.Div([
     html.Div([
@@ -307,20 +388,23 @@ slides_layout = html.Div([
     dash.dependencies.Output('page-content', 'children'),
     [dash.dependencies.Input('url', 'pathname')])
 def display_page(pathname):
-   if pathname == '/slides':
+   if pathname == '/about':
        return slides_layout
+   elif pathname == '/latent_communities':
+       return topic_layout
    else:
         return main_layout
+
+#!Hover callback
+#@app.callback(
+    #dash.dependencies.Output('table', 'children'),
+    #[dash.dependencies.Input('map', 'hoverData')])
+#def generate_table(hoverData, max_rows=10):
+    #selected_points = [p['customdata'] for p in hoverData['points']]
+    #dff = df.loc[selected_points]
+    #dff_n = get_neighbours(dff)
     
-@app.callback(
-    dash.dependencies.Output('table', 'children'),
-    [dash.dependencies.Input('map', 'hoverData')])
-def generate_table(hoverData, max_rows=10):
-    selected_points = [p['customdata'] for p in hoverData['points']]
-    dff = df.loc[selected_points]
-    dff_n = get_neighbours(dff)
-    
-    return make_dash_table(dff)
+    #return make_dash_table(dff)
     #return html.Table(
         ## Header
         #[html.Tr([html.Th(col) for col in dff.columns])] +
@@ -347,11 +431,27 @@ def generate_table(hoverData, max_rows=10):
                #align = ['left'] * 5))}
 
 @app.callback(
+    dash.dependencies.Output('pieplot', 'figure'),
+    [dash.dependencies.Input('map_2', 'hoverData')])
+def update_pieplot(hoverData, max_rows=10):
+    selected_points = [p['customdata'] for p in hoverData['points']]
+    dff = df.loc[selected_points]
+    return (plot_pieplot(dff))
+
+@app.callback(
+    dash.dependencies.Output('map_2', 'figure'),
+    [dash.dependencies.Input('pieplot', 'hoverData')])
+def update_map_2(hoverData):
+    dff = df[df[hoverData['points'][0]['customdata']] > 0.01]
+    return (plot_map_2(dff))
+
+#!MDS and slider callback
+@app.callback(
     dash.dependencies.Output('map', 'figure'),
     [dash.dependencies.Input('biome_slider', 'value'),
-     dash.dependencies.Input('MDS', 'selectedData'),
+     dash.dependencies.Input('MDS', 'selectedData')
     ])
-    
+
 def update_map(value, selectedData):
     if slider_values[value] != 'all':
         df['envo_tmp'] = 'other'
@@ -362,10 +462,11 @@ def update_map(value, selectedData):
     selected_index = list(set([
         p['customdata'] for p in selectedData['points']
     ]))
-       
-    dff = df.loc[selected_index]
+
+    dff = df.loc[selected_index]    
     return (plot_map(dff))
 
+#!Map and slider callback
 @app.callback(
     dash.dependencies.Output('MDS', 'figure'),
     [dash.dependencies.Input('biome_slider', 'value'),
