@@ -205,13 +205,15 @@ distance = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.JSD_distance_mat
 df.loc[df.envo_biome_2 == 'anthropogenic terrestrial biome', 
                      'envo_biome_2'] = df[df.envo_biome_2 == 'anthropogenic terrestrial biome'].envo_biome_3
 
+df.loc[df.country == 'GAZ:United States of America', 
+                     'country'] = 'GAZ:USA'
 topic_labels = ['Topic{}'.format(i) 
                         for i in range(20)]
 dendro = './pictures/dendro.png' # replace with your own image                                                                      
 encoded_image = base64.b64encode(open(dendro, 'rb').read())
 
 background = '''
-## Background
+## Background and motivation
 **Food insecurity.**
 Food security is one of the biggest challenges humanity is facing in the 21st century both due to increasing population size and extreme weather conditions brought on by climate change. Right now 3 million children die every year due to undernutrition. And decrease in production in any one of the few major plants that sustain civilization due to drought, soil salinization, temperature extremes or pathogens (harmful microbes) might increase this number even further. Traditional agricultural technologies such as breeding plants with beneficial traits, supplementing soil with fertilizers, spraying crops with pesticides and insecticides, are only effective in a set of defined of conditions and are unable to provide long-term protection or sustain crop productivity in a changing environment. Moreover use and overuse of pesticides and insecticides has harmful side effects such as decline in the population of plant pollinators - another threat to food security. So in recent years a lot of effort and resources have been invested in developing new technologies that would increase crop plants productivity, tolerance to stress and protect them from pathogens. 
 
@@ -219,11 +221,34 @@ Food security is one of the biggest challenges humanity is facing in the 21st ce
 One of the most promising directions is exploring beneficial interactions between plants and microbes. It turns out that multicellular organisms - plants and animals, can be considered as ecosystems inhabited by many different species of microbes (microbiome). Microbes living on the roots and in the soil around (rhizosphere) can benefit the plant in several ways. Microbes convert nutrients present in the soil thereby make them available for plant intake and protect plant from pathogenic bacteria or stressful environmental conditions, while plants provide carbon source for bacteria to feed on.
 
 **Soil microbiome vs plant microbiome.**
-To exploit beneficial interactions between plants and microbes for enhancing agricultural sustainability and food security it is important to understand what are the major factors that define plant microbiome. Microbial composition of the plant rhizosphere is largely determined by the microbial composition of the soil. It is therefore reasonable to assume that effectiveness of the external microbial supplements will depend on the native microbial community structure as well.'''
+To exploit beneficial interactions between plants and microbes for enhancing agricultural sustainability and food security it is important to understand what are the major factors that define plant microbiome. Microbial composition of the plant rhizosphere is largely determined by the microbial composition of the soil. It is therefore reasonable to assume that effectiveness of the external microbial supplements will depend on the native microbial community structure as well.
+
+**Goal of the project.**
+The goal of this project was to explore data from [Earth microbiome project](http://www.earthmicrobiome.org/), more specifically to determine which locations are similar to each other in terms of their bacterial compositions and which environmental factors drive this similarity.
+'''
 data_analysis = '''
-## Data Insights
-**Samples from the same location have similar bacterial composition.**
-To see if it makes sense to combine samples from the same locations I did hierarchical clustering of samples based on OTU composition ( I used cosine distance metric to calculate the pairwise distances between each pair of n-dimensional vectors describing each sample, where n number of OTUs). Then I plotted resulting dendrogram on top of the geographical distance matrix (see below). It does look like for the most part samples from the same location are also similar to each other in terms of the composition, at least if you consider the most abundant OTUs.
+## Methods
+**Data**
+
+**Community similarity metrics: Jensen-Shannon divergence and cosine similarity**
+
+**Hierarchical clustering**
+
+**Dimensionality reduction with Topic Modelling**
+
+**2D embedding with t-SNE and MDS**
+'''
+
+data_insights = '''
+## Data insights
+**Samples from the same location have similar bacterial composition**
+To see if it makes sense to combine samples from the same locations I did hierarchical clustering of samples based on OTU composition ( I used JSD metric to calculate the pairwise distances between each pair of n-dimensional vectors describing each sample, where n number of OTUs). Then I plotted resulting dendrogram on top of the geographical distance matrix (see below). It does look like for the most part samples from the same location are also similar to each other in terms of the composition, at least if you consider the most abundant OTUs.
+
+**Samples from the same type of environment have similar bacterial composition**
+
+**Sample similarity decreases with distance and depends on the environment**
+
+**Different environments have distinct composition in terms of latent communities**
 
 '''
 
@@ -257,6 +282,8 @@ color_table_desat = {'cropland biome': '#ff474c',
 columns = ['envo_biome_2', 'pos']
 
 env_re = re.compile(r'.+(?= biome)')
+country_re = re.compile(r'(?<=GAZ:).+')
+
 
 slider_values = {i: env_re.findall(df['envo_biome_2'].unique()[i])[0] for i in range(len(df['envo_biome_2'].unique()))}
 df['biome_labels'] = df.envo_biome_2.apply(lambda x: env_re.findall(x)[0])
@@ -275,7 +302,7 @@ app.layout = html.Div([
                      ], className='navbar-header',
                 ),
             html.Ul([
-                html.Li([dcc.Link('Biome', href='/')]),
+                html.Li([dcc.Link('Geography&Biome', href='/')]),
                 html.Li([dcc.Link('Latent communities', href='/latent_communities')]),
                 html.Li([html.A('About the project', href='/about')])
             ], className='nav navbar-nav',
@@ -299,12 +326,12 @@ main_layout = html.Div([
                 marks=slider_values,
                 value=5,
             )], 
-        style = {'margin-top': '20px', 'margin-bottom': '50px', 'margin-left': '20px', "width": "90%",'textAlign': 'center'}),
+        style = {'margin-top': '20px', 'margin-bottom': '50px', 'margin-left': '15px', "width": "90%",'textAlign': 'center'}),
     html.Div([
         html.H3('Select points to explore the connection between geography and community structure',
                 style = {'fontsize': '14','textAlign': 'left'})
         ],
-        style = {'padding': '0px 0px 0px 0px', 'margin-left': '20px'}),
+        style = {'padding': '0px 0px 0px 0px', 'margin-left': '15px', 'margin-bottom': '20px'}),
     html.Div([
         html.Div([
             dcc.Graph(id='map', 
@@ -319,12 +346,9 @@ main_layout = html.Div([
                 selectedData={'points': [], 'range': None}, 
                 style={'height':'90%','background': '#029386'},
                 ),
-            ], className="four columns", 
+            ], className="five columns", 
             style={'background': '#029386',
-                   'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-right': '20px', 'border': '1px solid black'}),
-        #html.Div([
-       #generate_table(df)
-       #])
+                   'padding': '0px 0px 0px 0px', 'margin-left': '10px', 'margin-right': '10px', 'border': '1px solid black'}),
         
     ], className="row"),
 ])
@@ -332,27 +356,29 @@ main_layout = html.Div([
 ##!============Latent communities layout=======================================
 topic_layout = html.Div([
     html.Div([
-        html.H3('Hover over points on the map and piechart to explore latent communities composition',
+        html.H3('Hover over points on the map and piechart to explore the composition of latent communities',
                 style = {'fontsize': '14','textAlign': 'left'})
         ],
-        style = {'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-top': '10px'}),
+        style = {'padding': '0px 0px 0px 0px', 'margin-left': '15px', 'margin-top': '15px',  'margin-bottom': '15px'}),
     html.Div([
         html.Div([
+            html.Div(id = 'topic_info', style = {'line-height': '18px', 'textAlign': 'center'}),
             dcc.Graph(id='map_2', 
                 hoverData={'points': [{'customdata': df.index[0]}], 'range': None},
                 style={'height':'100%'}, 
                 animate=True),
             ], className="seven columns",
-            style={'padding': '0px 0px 0px 0px', 'margin-left': '30px', 'border': '1px solid black'}),
+            style={'padding': '0px 0px 0px 0px', 'margin-left': '30px'}),
       
         html.Div([
+            html.Div(id = 'sample_info', style = {'line-height': '18px', 'textAlign': 'center'}),
             dcc.Graph(id='pieplot',
                 hoverData={'points': [{'customdata':'Topic1'}], 'range': None},
-                style={'height':'90%','background': '#029386'},
+                style={'height':'100%'},
                 ),
-            ], className="four columns", 
-            style={'background': '#029386',
-                   'padding': '0px 0px 0px 0px', 'margin-left': '20px', 'margin-right': '20px'}),       
+            ], className="five columns", 
+            style={
+                   'padding': '0px 0px 0px 0px', 'margin-left': '0px', 'margin-right': '20px'}),       
     ], className="row"),
 ])
 
@@ -362,17 +388,18 @@ slides_layout = html.Div([
         dcc.Markdown(background, className='col-md-12')], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
     html.Div([
-        html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
-                 style={'height': '300px', 'textAlight': 'center'})
-        ], style={'textAlign': 'center'}),
-    html.Div([
         dcc.Markdown(data_analysis, className='col-md-12')], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
+     html.Div([
+        html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
+                 style={'height': '300px', 'textAlight': 'left'}),
+        dcc.Markdown(data_insights)], 
+    style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}, className='col-md-12'),
     html.Div([
         html.H2('Find out more about the project', style = {'display': 'block', 'textAlign': 'center', 'margin':'auto', 'margin-top': '25px'})
         ]),
     html.Div([
-    html.Iframe(src='https://docs.google.com/presentation/d/e/2PACX-1vT-0AZi8An7IcQJ1Y1H-7P-UvuIzajaVph8A-HANFbcy-nl3KhyCF_9utQ2XzTW2fGc3TOO63Kj8dU6/embed?start=false&loop=false&delayms=3000',
+    html.Iframe(src="https://docs.google.com/presentation/d/e/2PACX-1vQuvAYk8nORSR-hNKUTIA_2CAMRFhkRG2EidQWCskLZpS7ItDMWAj6_cTrd59WRQ-bKlEVtjy_tdoR_/embed?start=false&loop=false&delayms=3000",
                 style = {'width': '960px', 'framborder': '0', 'height': '749px',
                          'textAlign': 'center', 'display': 'block', 'margin': 'auto','margin-top': '20px'})
                 ])
@@ -395,41 +422,9 @@ def display_page(pathname):
    else:
         return main_layout
 
-#!Hover callback
-#@app.callback(
-    #dash.dependencies.Output('table', 'children'),
-    #[dash.dependencies.Input('map', 'hoverData')])
-#def generate_table(hoverData, max_rows=10):
-    #selected_points = [p['customdata'] for p in hoverData['points']]
-    #dff = df.loc[selected_points]
-    #dff_n = get_neighbours(dff)
-    
-    #return make_dash_table(dff)
-    #return html.Table(
-        ## Header
-        #[html.Tr([html.Th(col) for col in dff.columns])] +
+#!====================Latent communities page callbacks========================
 
-        ## Body
-        #[html.Tr([
-            #html.Td(dff.iloc[i][col]) for col in dff.columns
-        #]) for i in range(min(len(dff), max_rows))]
-    #)
-    #return html.P(
-        #'The sample from {} was collected on {}'.format(
-            #dff_n.iloc[0]['env_material'],
-            #dff_n.iloc[0]['country']
-        #)
-    #)
-    
-    
-    #return {'data': go.Table(
-    #header=dict(values=columns,
-                #fill = dict(color='#C2D4FF'),
-                #align = ['left'] * 5),
-    #cells=dict(values=[dff[column] for column in columns],
-               #fill = dict(color='#F5F8FF'),
-               #align = ['left'] * 5))}
-
+#!map callbacks
 @app.callback(
     dash.dependencies.Output('pieplot', 'figure'),
     [dash.dependencies.Input('map_2', 'hoverData')])
@@ -439,11 +434,38 @@ def update_pieplot(hoverData, max_rows=10):
     return (plot_pieplot(dff))
 
 @app.callback(
+    dash.dependencies.Output('sample_info', 'children'),
+    [dash.dependencies.Input('map_2', 'hoverData')])
+def update_sample(hoverData):
+    selected_points = [p['customdata'] for p in hoverData['points']]
+    dff = df.loc[selected_points]
+    return html.P(
+        'The sample from {} collected in {}'.format(
+            dff.iloc[0]['env_material'],
+            country_re.findall(dff.iloc[0]['country'])[0]
+                )
+        )
+
+#!pieplot callbacks
+@app.callback(
     dash.dependencies.Output('map_2', 'figure'),
     [dash.dependencies.Input('pieplot', 'hoverData')])
 def update_map_2(hoverData):
     dff = df[df[hoverData['points'][0]['customdata']] > 0.01]
     return (plot_map_2(dff))
+
+
+@app.callback(
+    dash.dependencies.Output('topic_info', 'children'),
+    [dash.dependencies.Input('pieplot', 'hoverData')])
+def update_topic(hoverData):
+    return html.P(
+        'Samples that contain {}'.format(
+            hoverData['points'][0]['customdata']
+                                        )
+                )
+
+#!===============Main page callbacks===========================================
 
 #!MDS and slider callback
 @app.callback(
