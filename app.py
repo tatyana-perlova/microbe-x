@@ -209,9 +209,18 @@ df.loc[df.country == 'GAZ:United States of America',
                      'country'] = 'GAZ:USA'
 topic_labels = ['Topic{}'.format(i) 
                         for i in range(20)]
-dendro = './pictures/dendro.png' # replace with your own image                                                                      
-encoded_dendro = base64.b64encode(open(dendro, 'rb').read())
 
+#!===========================Images==============================================
+dendro = './pictures/dendro.png'                                                                    
+encoded_dendro = base64.b64encode(open(dendro, 'rb').read())
+mds_tsne = './pictures/mds_vs_tSNE.png'                                                                    
+encoded_mds_tsne = base64.b64encode(open(mds_tsne, 'rb').read())
+sim_vs_dist = './pictures/sim_vs_dist.png'                                                                    
+encoded_sim_vs_dist = base64.b64encode(open(sim_vs_dist, 'rb').read())
+topics_over_biomes = './pictures/topics_over_biomes.png'                                                                    
+encoded_topics_over_biomes = base64.b64encode(open(topics_over_biomes, 'rb').read())
+biomes_over_topics = './pictures/biomes_over_topics.png'                                                                    
+encoded_biomes_over_topics = base64.b64encode(open(biomes_over_topics, 'rb').read())
 
 #!=========================Project description===================================
 #!===============================================================================
@@ -228,33 +237,44 @@ To exploit beneficial interactions between plants and microbes for enhancing agr
 '''
 data_analysis = '''
 ## Methods
+See [GitHub repository](https://github.com/tatyana-perlova/EMP-analysis) for implementation of the analysis described below.
+
 **Data.**
-Data was downloaded from [ftp server](ftp://ftp.microbio.me/emp/release1/otu_tables/). All analysis was done on emp_deblur_90bp.qc_filtered.biom biom table, quality-filtered, unrarified table, where OTU assignments were done in a database-independent manner based on sequence similarity. For more details on how the tables were produced see [Thompson et al., 2017, Nature](http://doi.org/10.1038/nature24621). The table was filtered to only leave samples from soil using command line tools. Topic modelling and 2D embedding was performed on the table where samples from the same location were combined by adding correspondent OTU abundances. Latitude and longitude values were rounded to 2 significant figures prior to combining samples from the same location (see below).
+Data was downloaded from [ftp server](ftp://ftp.microbio.me/emp/release1/otu_tables/). All analysis was done on `emp_deblur_90bp.qc_filtered.biom` biom table, quality-filtered, unrarified table, where OTU assignments were done in a database-independent manner based on sequence similarity. For more details on how the tables were produced see [Thompson et al., 2017, Nature](http://doi.org/10.1038/nature24621). The table was filtered to only leave samples from soil using Qiime command:
+
+`$ filter_samples_from_otu_table.py -i ./emp_deblur_90bp.qc_filtered.biom -o ./emp_deblur_90bp.qc_filtered_soil.biom -m ../../mapping_files/emp_qiime_mapping_qc_filtered.tsv -s 'empo_3:Soil (non-saline)'`
+
+Topic modelling and 2D embedding was performed on the table where samples from the same location were combined by adding correspondent OTU abundances. Latitude and longitude values were rounded to 2 significant figures prior to calculating geographical distance and combining samples from the same location (see below).
 
 **Community similarity metrics.**
-Pairwise distance between samples was calculated either using cosine similarity or [Jensen-Shannon divergence](https://en.wikipedia.org/wiki/Jensen%E2%80%93Shannon_divergence) (JSD), both metrics giving comparable results. However all further analysis discussed below was performed using JSD as a measure of similarity. JSD was calculated as $JSD(P||Q) = 1/2\cdot D(P||M) + 1/2\cdot D(Q||M)$, where $M = 1/2(P+Q)$ and $D(P||M) = \sum_i P_i \log\frac{P_i}{M_i}$. JSD calculation was optimized and parallelized using numba library and took ~8 hours on 40 cores.
+Pairwise distance between samples was calculated either using cosine similarity or [Jensen-Shannon divergence](https://en.wikipedia.org/wiki/Jensen%E2%80%93Shannon_divergence) (JSD), both metrics giving comparable results. However all further analysis discussed below was performed using JSD as a measure of similarity. JSD calculation was optimized and parallelized using numba library and took ~8 hours on 40 cores.
 
 **Hierarchical clustering.**
 [Hierarchical clustering](https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage) on the JSD distance matrix was performed using 'centroid' method for calculating distance between clusters (also tried 'single', 'complete', and 'ward' methods).
 
-**Topic Modelling**
-Number of latent communities needed to describe samples
+**Topic Modelling.**
+Topic modelling was done using Latent Dirichlet Allocation module of scikit-learn library. Number of latent communities (topics) needed to describe samples was determined based on the values of perplexity, which is essentially a decreasing function of the log-likelihood of the data given the topic matrix and topic over samples distribution. Perplexity changed below 1\% when number of topics changed from 20 to 25 so I set the number of topics to 20. 
 
-**2D embedding with t-SNE and MDS**
+**2D embedding with t-SNE and MDS.**
+I used both MDS and [t-SNE](https://distill.pub/2016/misread-tsne/) to embed calculated JSD distance matrix in 2 dimensions (see Results for comparison between the two). While t-SNE prioritizes points that are close to each other in high-dimensional space, MDS creates a more faithful representation of the distances between points.
 '''
 
-data_insights = '''
-## Data insights
+dendro_text = '''
 **Samples from the same location have similar bacterial composition**
-To see if it makes sense to combine samples from the same locations I did hierarchical clustering of samples based on OTU composition ( I used JSD metric to calculate the pairwise distances between each pair of n-dimensional vectors describing each sample, where n number of OTUs). Then I plotted resulting dendrogram on top of the geographical distance matrix (see below). It does look like for the most part samples from the same location are also similar to each other in terms of the composition, at least if you consider the most abundant OTUs.
+To see if it makes sense to combine samples from the same locations I did hierarchical clustering of samples based on their pairwise distance according to JSD. Then I plotted resulting dendrogram on top of the geographical distance matrix sorted accordingly (see below). It does look like for the most part samples from the same location are also similar to each other in terms of the composition, i.e. cluster borders also mark geographical clusters, although there are a few location with samples belonging to multiple clusters.'''
 
+two_d_embedding = '''
 **Samples from the same type of environment have similar bacterial composition**
+Accordingt to the 2d embedding of the samples both with t-SNE and MDS it looks like bacteria cluster together although there is quite a bit of overlap as well.'''
 
-**Sample similarity decreases with distance and depends on the environment**
+sim_vs_dist_text = '''
+**Sample similarity decreases with distance and depends on the environment.**
+I also looked at how similarity between samples (1-JSD) changes with geographical distance between them. This analysis was done prior to combining samples from the same location and and point binning was down by geographical distance. While trends is the same for different environments, i.e. similarity decreases with distance as expected, croplands are more similar to each other than deserts even at longer distances. Although this might have to do that both places in Antarctica and South US were labeled as deserts.'''
 
-**Different environments have distinct composition in terms of latent communities**
+topics_text = '''
+**Different environments have distinct composition in terms of latent communities.**
+Based on the distribution of latent communities over different environments (see below), it looks like that some environments are dominated by just a few latent communities, e.g. freshwater and shrubland (see below). And vice versa some topics only have significant abundance in a few environments (see below).'''
 
-'''
 
 #!===========Define constants=====================================================
 #!=============================================================================
@@ -396,9 +416,22 @@ slides_layout = html.Div([
         dcc.Markdown(data_analysis, className='col-md-12')], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
      html.Div([
+        dcc.Markdown('''## Results'''),
+        dcc.Markdown(dendro_text),
         html.Img(src='data:image/png;base64,{}'.format(encoded_dendro.decode()),
-                 style={'height': '300px', 'textAlight': 'left'}),
-        dcc.Markdown(data_insights)], 
+                 style={'height': '300px', 'textAlight': 'center'}),
+        dcc.Markdown(sim_vs_dist_text),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_sim_vs_dist.decode()),
+                 style={'height': '300px', 'textAlight': 'center'}),
+        dcc.Markdown(two_d_embedding),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_mds_tsne.decode()),
+                 style={'height': '300px', 'textAlight': 'center'}),
+        dcc.Markdown(topics_text),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_topics_over_biomes.decode()),
+                 style={'height': '250px', 'textAlight': 'center'}),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_biomes_over_topics.decode()),
+                 style={'height': '250px', 'textAlight': 'center'})
+        ], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}, className='col-md-12'),
     html.Div([
         html.H2('Find out more about the project', style = {'display': 'block', 'textAlign': 'center', 'margin':'auto', 'margin-top': '25px'})
