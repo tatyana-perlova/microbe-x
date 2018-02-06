@@ -106,6 +106,7 @@ def plot_MDS(dff):
                         showlegend = True,
                         name = [env_re.findall(i)[0] if i != 'other' else i][0],
                         mode = 'markers',
+                        hovertext = df[df['envo_tmp'] == i].study_id,
                         customdata = df.index,
                         marker={
                             'opacity':1,
@@ -121,7 +122,7 @@ def plot_MDS(dff):
                         showlegend = False,
                         name = dff['envo_tmp'],
                         mode = 'markers',
-                        hovertext = dff.country,
+                        hovertext = dff.study_id,
                         customdata = dff.index,
                         marker={
                             'opacity':1,
