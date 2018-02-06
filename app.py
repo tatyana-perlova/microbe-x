@@ -197,7 +197,7 @@ def generate_table(dff, max_rows=2):
         ]) for i in range(min(len(dff), max_rows))]
     )
 
-#!===========Read data==========================================================
+#!===========Read data=========================================================
 #!=============================================================================
 
 df = pd.read_csv('./data/emp_deblur_90bp.qc_filtered_soil.t-SNE_JSD_LDA_topics.by_loc.csv', index_col = 0)
@@ -210,8 +210,11 @@ df.loc[df.country == 'GAZ:United States of America',
 topic_labels = ['Topic{}'.format(i) 
                         for i in range(20)]
 dendro = './pictures/dendro.png' # replace with your own image                                                                      
-encoded_image = base64.b64encode(open(dendro, 'rb').read())
+encoded_dendro = base64.b64encode(open(dendro, 'rb').read())
 
+
+#!=========================Project description===================================
+#!===============================================================================
 background = '''
 ## Background and motivation
 **Food insecurity.**
@@ -220,21 +223,22 @@ Food security is one of the biggest challenges humanity is facing in the 21st ce
 **Symbiotic relationships between plants and microbes.**
 One of the most promising directions is exploring beneficial interactions between plants and microbes. It turns out that multicellular organisms - plants and animals, can be considered as ecosystems inhabited by many different species of microbes (microbiome). Microbes living on the roots and in the soil around (rhizosphere) can benefit the plant in several ways. Microbes convert nutrients present in the soil thereby make them available for plant intake and protect plant from pathogenic bacteria or stressful environmental conditions, while plants provide carbon source for bacteria to feed on.
 
-**Soil microbiome vs plant microbiome.**
-To exploit beneficial interactions between plants and microbes for enhancing agricultural sustainability and food security it is important to understand what are the major factors that define plant microbiome. Microbial composition of the plant rhizosphere is largely determined by the microbial composition of the soil. It is therefore reasonable to assume that effectiveness of the external microbial supplements will depend on the native microbial community structure as well.
-
-**Goal of the project.**
-The goal of this project was to explore data from [Earth microbiome project](http://www.earthmicrobiome.org/), more specifically to determine which locations are similar to each other in terms of their bacterial compositions and which environmental factors drive this similarity.
+**Project goal.**
+To exploit beneficial interactions between plants and microbes for enhancing agricultural sustainability and food security it is important to understand what are the major factors that define plant microbiome. Microbial composition of the plant rhizosphere is largely determined by the microbial composition of the soil. It is therefore reasonable to assume that effectiveness of the external microbial supplements or probiotics will depend on the native microbial community structure as well. Information about soil microbial communities can be used to target plant probiotics to new locations: if the probiotics have been tested and shown successful in one location, their effectiveness in a new location can be inferred based on the similarity between the native microbial communities of the soil from the two locations. The goal of this project was to explore data from [Earth microbiome project](http://www.earthmicrobiome.org/), more specifically to determine which locations are similar to each other in terms of their bacterial compositions and which environmental factors drive this similarity.
 '''
 data_analysis = '''
 ## Methods
-**Data**
+**Data.**
+Data was downloaded from [ftp server](ftp://ftp.microbio.me/emp/release1/otu_tables/). All analysis was done on emp_deblur_90bp.qc_filtered.biom biom table, quality-filtered, unrarified table, where OTU assignments were done in a database-independent manner based on sequence similarity. For more details on how the tables were produced see [Thompson et al., 2017, Nature](http://doi.org/10.1038/nature24621). The table was filtered to only leave samples from soil using command line tools. Topic modelling and 2D embedding was performed on the table where samples from the same location were combined by adding correspondent OTU abundances. Latitude and longitude values were rounded to 2 significant figures prior to combining samples from the same location (see below).
 
-**Community similarity metrics: Jensen-Shannon divergence and cosine similarity**
+**Community similarity metrics.**
+Pairwise distance between samples was calculated either using cosine similarity or [Jensen-Shannon divergence](https://en.wikipedia.org/wiki/Jensen%E2%80%93Shannon_divergence) (JSD), both metrics giving comparable results. However all further analysis discussed below was performed using JSD as a measure of similarity. JSD was calculated as $JSD(P||Q) = 1/2\cdot D(P||M) + 1/2\cdot D(Q||M)$, where $M = 1/2(P+Q)$ and $D(P||M) = \sum_i P_i \log\frac{P_i}{M_i}$. JSD calculation was optimized and parallelized using numba library and took ~8 hours on 40 cores.
 
-**Hierarchical clustering**
+**Hierarchical clustering.**
+[Hierarchical clustering](https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage) on the JSD distance matrix was performed using 'centroid' method for calculating distance between clusters (also tried 'single', 'complete', and 'ward' methods).
 
-**Dimensionality reduction with Topic Modelling**
+**Topic Modelling**
+Number of latent communities needed to describe samples
 
 **2D embedding with t-SNE and MDS**
 '''
@@ -288,9 +292,10 @@ country_re = re.compile(r'(?<=GAZ:).+')
 slider_values = {i: env_re.findall(df['envo_biome_2'].unique()[i])[0] for i in range(len(df['envo_biome_2'].unique()))}
 df['biome_labels'] = df.envo_biome_2.apply(lambda x: env_re.findall(x)[0])
 slider_values[len(df['envo_biome_2'].unique())] = 'all'
+
+
 #!===========Set up navbar======================================================
 #!=============================================================================
-
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div([
@@ -391,7 +396,7 @@ slides_layout = html.Div([
         dcc.Markdown(data_analysis, className='col-md-12')], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}),
      html.Div([
-        html.Img(src='data:image/png;base64,{}'.format(encoded_image.decode()),
+        html.Img(src='data:image/png;base64,{}'.format(encoded_dendro.decode()),
                  style={'height': '300px', 'textAlight': 'left'}),
         dcc.Markdown(data_insights)], 
     style = {'line-height': '18px', 'margin-right': '30px', 'margin-left': '30px'}, className='col-md-12'),
@@ -509,6 +514,7 @@ def update_MDS_plot(value, selectedData):
     return (plot_MDS(dff))
 
 
+#!================Styles=========================================================================
 app.css.append_css({
     'external_url': 'https://codepen.io/chriddyp/pen/bWLwgP.css'
 })
